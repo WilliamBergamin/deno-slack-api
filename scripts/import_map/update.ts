@@ -11,7 +11,7 @@ const flags = parse(Deno.args, {
 const importMap = JSON.parse(await Deno.readTextFile(flags["import-map"]));
 importMap["imports"]["deno-slack-api/"] = flags.api;
 importMap["scopes"] = {
-  "https://deno.land/x/deno-slack-sdk/": {
+  [importMap["imports"]["deno-slack-api/"]]: {
     "https://deno.land/x/deno-slack-api/": flags.api
   }
 }
