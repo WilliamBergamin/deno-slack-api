@@ -15,12 +15,12 @@
   },
   "lint": {
     "files": {
-      "include": ["src"]
+      "include": ["src", "scripts"]
     }
   },
   "test": {
     "files": {
-      "include": ["src"]
+      "include": ["src", "scripts"]
     }
   },
   "tasks": {
