@@ -21,6 +21,8 @@ importMap["scopes"] = {
   [importMap["imports"]["deno-slack-sdk/"]]: sdkScope,
 };
 
+console.log(importMap);
+
 await Deno.writeTextFile(flags["import-map"], JSON.stringify(importMap));
 
 async function getApiDepsUsed(sdkDep: string): Promise<Set<string>> {
