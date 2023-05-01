@@ -30,6 +30,11 @@ jobs:
         uses: actions/checkout@v3
         with:
           path: ./deno-slack-api
+      - name: Checkout the sdk
+        uses: actions/checkout@v3
+        with:
+          tags: latest
+          path: ./deno-slack-sdk
       - name: Checkout the ${{ matrix.sample }} sample
         uses: actions/checkout@v3
         with:
