@@ -1,4 +1,11 @@
-import { parse } from "https://deno.land/std/flags/mod.ts";
+import { parse } from "https://deno.land/std@0.185.0/flags/mod.ts";
+import {
+  createHttpError,
+} from "https://deno.land/std@0.182.0/http/http_errors.ts";
+
+// Regex for https://deno.land/x/deno_slack_api@x.x.x/
+const API_REGEX =
+  /(https:\/\/deno.land\/x\/deno_slack_api@[0-9]+\.[0-9]+\.[0-9]+\/)/g;
 
 async function main() {
   const flags = parse(Deno.args, {
@@ -9,37 +16,48 @@ async function main() {
     },
   });
 
-  const importMap = JSON.parse(await Deno.readTextFile(flags["import-map"]));
-  const apiDeps = await getApiDepsUsed(importMap["imports"]["deno-slack-sdk/"]);
+  const importMapJsonIn = await Deno.readTextFile(flags["import-map"]);
+  console.log("`import_map.json` in content:", importMapJsonIn);
 
-  const sdkScope: Record<string, string> = {};
-  for (const apiDep in apiDeps) {
-    sdkScope[apiDep] = flags.api;
-  }
+  const importMap = JSON.parse(importMapJsonIn);
+  const denoSlackSdkValue = importMap["imports"]["deno-slack-sdk/"];
+
+  const apiDepsInSdk = await apiDepsIn(denoSlackSdkValue);
 
   importMap["imports"]["deno-slack-api/"] = flags.api;
   importMap["scopes"] = {
-    [importMap["imports"]["deno-slack-sdk/"]]: sdkScope,
+    [denoSlackSdkValue]: [...apiDepsInSdk].reduce(
+      (sdkScopes: Record<string, string>, apiDep: string) => {
+        return {
+          ...sdkScopes,
+          [apiDep]: flags.api,
+        };
+      },
+      {},
+    ),
   };
 
-  await Deno.writeTextFile(flags["import-map"], JSON.stringify(importMap));
+  const importMapJsonOut = JSON.stringify(importMap);
+  console.log("`import_map.json` out content:", importMapJsonOut);
+
+  await Deno.writeTextFile(flags["import-map"], importMapJsonOut);
 }
 
-export async function getApiDepsUsed(sdkDep: string): Promise<Set<string>> {
-  // Regex for https://deno.land/x/deno_slack_api@x.x.x/
-  const API_REGEX =
-    /(https:\/\/deno.land\/x\/deno_slack_api@[0-9]+\.[0-9]+\.[0-9]+\/)/;
-  const response = await fetch(`${sdkDep}deps.ts?source,file`);
-  const bodyReader = response.body!.getReader();
-
-  const apiDeps = new Set<string>();
-  while (true) {
-    const { done, value } = await bodyReader.read();
-    if (done) break;
-    const file = new TextDecoder().decode(value);
-    file.match(API_REGEX)?.forEach((match) => apiDeps.add(match));
+export async function apiDepsIn(moduleUrl: string): Promise<Set<string>> {
+  const fileUrl = moduleUrl.endsWith("/")
+    ? `${moduleUrl}deps.ts?source,file`
+    : `${moduleUrl}/deps.ts?source,file`;
+  const response = await fetch(fileUrl);
+  if (!response.ok) {
+    const err = createHttpError(response.status, await response.text(), {
+      expose: true,
+      headers: response.headers,
+    });
+    console.error(err);
+    throw err;
   }
-  return apiDeps;
+  const depsTs = await response.text();
+  return new Set<string>(depsTs.match(API_REGEX));
 }
 
 if (import.meta.main) main();

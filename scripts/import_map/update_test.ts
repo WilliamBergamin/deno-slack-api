@@ -1,31 +1,37 @@
-import { assertEquals } from "https://deno.land/std@0.185.0/testing/asserts.ts";
-import { getApiDepsUsed } from "./update.ts";
+import {
+  assertEquals,
+  assertRejects,
+} from "https://deno.land/std@0.185.0/testing/asserts.ts";
+import {
+  afterEach,
+  beforeAll,
+} from "https://deno.land/std@0.185.0/testing/bdd.ts";
+import { apiDepsIn } from "./update.ts";
 import * as mockFetch from "https://deno.land/x/mock_fetch@0.3.0/mod.ts";
+import { HttpError } from "https://deno.land/std@0.182.0/http/http_errors.ts";
 
-mockFetch.install();
+const depsTsMock =
+  `export { SlackAPI } from "https://deno.land/x/deno_slack_api@2.1.0/mod.ts";
+   export type {SlackAPIClient, Trigger} from "https://deno.land/x/deno_slack_api@2.2.0/types.ts";`;
 
-const message =
-            `export { SlackAPI } from "https://deno.land/x/deno_slack_api@2.1.0/mod.ts";
-			export type {SlackAPIClient, Trigger} from "https://deno.land/x/deno_slack_api@2.2.0/types.ts";`;
-          .enqueue(new TextEncoder().encode(message));
-Deno.test("getApiDepsUsed should return a list of all the versions of the api in the sdk", async () => {
+beforeAll(() => {
+  mockFetch.install();
+});
+
+afterEach(() => {
+  mockFetch.reset();
+});
+
+Deno.test("apiDepsIn should return a list of the api module urls used by a module", async () => {
   mockFetch.mock("GET@/x/deno_slack_sdk@x.x.x/deps.ts", (req: Request) => {
     assertEquals(
       req.url,
       "https://deno.land/x/deno_slack_sdk@x.x.x/deps.ts?source,file",
     );
-
-    let timer: number | undefined = undefined;
-    const body = new ReadableStreamDefaultReader({});
-    return new Response(body, {
-      headers: {
-        "content-type": "text/plain",
-        "x-content-type-options": "nosniff",
-      },
-    });
+    return new Response(depsTsMock);
   });
 
-  const apiDeps = await getApiDepsUsed(
+  const apiDeps = await apiDepsIn(
     "https://deno.land/x/deno_slack_sdk@x.x.x/",
   );
 
@@ -35,5 +41,20 @@ Deno.test("getApiDepsUsed should return a list of all the versions of the api in
       "https://deno.land/x/deno_slack_api@2.1.0/",
       "https://deno.land/x/deno_slack_api@2.2.0/",
     ]),
+  );
+});
+
+Deno.test("apiDepsIn should throw http error on response not ok", async () => {
+  mockFetch.mock("GET@/x/deno_slack_sdk@x.x.x/deps.ts", () => {
+    return new Response("error", { status: 500 });
+  });
+
+  await assertRejects(
+    async () => {
+      return await apiDepsIn(
+        "https://deno.land/x/deno_slack_sdk@x.x.x/",
+      );
+    },
+    HttpError,
   );
 });
