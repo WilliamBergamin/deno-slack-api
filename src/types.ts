@@ -43,7 +43,7 @@ export type BaseResponse = {
   [otherOptions: string]: any;
 };
 
-export type SlackAPIClient =
+type SlackAPIClient =
   & BaseSlackClient
   & TypedSlackAPIMethodsType
   & SlackAPIMethodsType;
