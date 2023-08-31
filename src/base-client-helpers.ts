@@ -1,4 +1,4 @@
-const API_VERSION_REGEX = /\/deno_slack_api@(.*)\//;
+const API_VERSION_REGEX = /\/deno_bill_api@(.*)\//;
 
 export function getUserAgent() {
   const userAgents = [];
@@ -12,7 +12,7 @@ export function getUserAgent() {
 
 function getModuleVersion(): string | undefined {
   const url = _internals.getModuleUrl();
-  // Insure this module is sourced from https://deno.land/x/deno_slack_api
+  // Insure this module is sourced from https://deno.land/x/deno_bill_api
   if (url.host === "deno.land") {
     return url.pathname.match(API_VERSION_REGEX)?.at(1);
   }

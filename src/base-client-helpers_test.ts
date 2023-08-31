@@ -11,7 +11,7 @@ Deno.test(`base-client-helpers.${_internals.getModuleVersion.name}`, async (t) =
     "should return the version if the module is sourced from deno.land",
     () => {
       const getModuleUrlStub = stub(_internals, "getModuleUrl", () => {
-        return new URL("https://deno.land/x/deno_slack_api@2.1.0/mod.ts)");
+        return new URL("https://deno.land/x/deno_bill_api@2.1.0/mod.ts)");
       });
 
       try {
@@ -86,10 +86,10 @@ Deno.test(`base-client-helpers.${getUserAgent.name}`, async (t) => {
   await t.step(
     "should return the user agent with deno version, OS name and deno-slack-api version",
     () => {
-      const expectedVersion = "2.1.0";
+      const expectedVersion = "0.0.0";
       const getModuleUrlStub = stub(_internals, "getModuleUrl", () => {
         return new URL(
-          `https://deno.land/x/deno_slack_api@${expectedVersion}/mod.ts)`,
+          `https://deno.land/x/deno_bill_api@${expectedVersion}/mod.ts`,
         );
       });
 
